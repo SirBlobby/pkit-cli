@@ -1,8 +1,15 @@
 [package]
 name = "pkit"
 version = "0.0.1"
+authors = ["Sir Blob <dev@sirblob.me>"]
 edition = "2024"
 
 [dependencies]
-reqwest = { version = "0.12.14", features = ["blocking"] }
+json = "0.12.4"
+reqwest = { version = "0.12.14", features = ["json", "stream", "blocking"] }
+futures-util = "0.3"
 tokio = { version = "1.0", features = ["full"] }
+indicatif = "0.17"
+zip = "2.4.1"
+flate2 = "1.1.0"
+tar = "0.4.44"

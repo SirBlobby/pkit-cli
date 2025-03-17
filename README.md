@@ -6,7 +6,7 @@ Crossplatform Programming Software Manager
 ![Issues](https://img.shields.io/github/issues/GamerBoss101/Pkit)
 
 ## TechStack
-![TechStack](https://skillicons.dev/icons?i=rust,mongo)
+[![Rust](https://skillicons.dev/icons?i=rust)](https://www.rust-lang.org/)
 
 ## Plan
 1. Have a database with multiple languages/frameworks and their binaries.

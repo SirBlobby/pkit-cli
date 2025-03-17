@@ -1,5 +1,5 @@
 
-pub struct Command {
+pub struct ClICommand {
     pub command: Vec<String>,
     pub flags: Vec<Flag>,
 }
@@ -10,15 +10,26 @@ pub struct Flag {
 }
 
 
-// impl Command {
-//     pub fn new() -> Command {
-//         Command {
-//             command: Vec::new(),
-//             flags: Vec::new(),
-//         }
-//     }
-// }
+impl ClICommand {
+    pub fn new() -> ClICommand {
+        ClICommand {
+            command: Vec::new(),
+            flags: Vec::new(),
+        }
+    }
 
+    pub fn get_first(&self) -> String {
+        if self.command.is_empty() { return String::new(); }
+        return self.command[0].clone();
+    }
+
+    pub fn remove_first(&mut self) {
+        if self.command.is_empty() { return; }
+        self.command.remove(0);
+    }
+}
+
+// env::args().collect() does this for us
 // pub fn string_reader(command: &str) -> Vec<String> {
 
 //     let mut tokens: Vec<String> = Vec::new();
@@ -53,6 +64,7 @@ pub struct Flag {
 //     return tokens;
 // }
 
+// Get commands from a list of tokens (No longer needed since removing tokens from the list when getting flags)
 // pub fn get_commands(tokens: &Vec<String>) -> Vec<String> {
 //     let mut commands: Vec<String> = Vec::new();
 //     let mut command: String = String::new();
@@ -92,6 +104,8 @@ fn remove_args(tokens: Vec<String>, args: &[String]) -> Vec<String> {
     return new_tokens;
 }
 
+
+// Some Logic examples for the parser
 // --flag1 "value1" --flag2 "value2"
 // --flag1 "value1" --flag2 --flag3 "value3" (flag2 value is null)
 // a argument without a flag is considered a command
@@ -137,10 +151,10 @@ pub fn get_flags(tokens: &mut Vec<String>) -> Vec<Flag> {
     return flags;
 }
 
-pub fn main(commands: &[String]) -> Command {
+pub fn main(commands: &[String]) -> ClICommand {
     let mut tokens: Vec<String> = Vec::from(commands); // string_reader(command);
 
-    return Command {
+    return ClICommand {
         flags: get_flags(&mut tokens),
         command: tokens
     };
