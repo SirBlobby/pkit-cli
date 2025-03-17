@@ -37,6 +37,6 @@ pub async fn download(url: &str) {
 
 
     let bytes = resp.bytes().await.expect("Failed to read response");
-    let filename = url.split("/").last().unwrap().split("?").next().unwrap();
+    let filename: &str = url.split("/").last().unwrap().split("?").next().unwrap();
     fs::write(filename, bytes).expect("Failed to write file");
 }

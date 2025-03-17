@@ -1,25 +1,29 @@
 use std::env;
 
 use pkit::parser;
-use pkit::request;
+// use pkit::request;
+
+use pkit::commands::list;
 
 // PATH="$(pwd):$PATH"
 
-async fn run() {
-    let url = "https://www.dropbox.com/scl/fi/qmny11w7wkjnskyh7g76m/Cobblemon-Official-Fabric-1.0.0.mrpack?rlkey=s3nkxs0u18s123a4pylvmphzn&st=36q91qxa&dl=1";
-    request::download(url).await;
-}
+// async fn run() {
+//     let url = "https://www.rust-lang.org/logos/rust-logo-512x512.png";
+//     request::download(url).await;
+// }
+
+// run().await;
 
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
-    let cli = parser::main(&args[1..]);
+    let cli_command: parser::ClICommand = parser::main(&args[2..]);
 
-    println!("{:?}", cli.command);
-
-    for flag in cli.flags {
-        println!("{:?} - {:?}", flag.flag, flag.value);
+    match args[1].as_str() {
+        "list" => {
+            list::main(&cli_command);
+        },
+        _ => println!("Command not found"),
     }
-
-    run().await;
+    
 }

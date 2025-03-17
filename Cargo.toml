@@ -1,8 +1,10 @@
 [package]
 name = "pkit"
 version = "0.0.1"
+authors = ["Sir Blob <dev@sirblob.me>"]
 edition = "2024"
 
 [dependencies]
+json = "0.12.4"
 reqwest = { version = "0.12.14", features = ["blocking"] }
 tokio = { version = "1.0", features = ["full"] }
