@@ -3,16 +3,9 @@ use std::env;
 use pkit::parser;
 // use pkit::request;
 
-use pkit::commands::list;
+use pkit::commands::{list, install};
 
 // PATH="$(pwd):$PATH"
-
-// async fn run() {
-//     let url = "https://www.rust-lang.org/logos/rust-logo-512x512.png";
-//     request::download(url).await;
-// }
-
-// run().await;
 
 #[tokio::main]
 async fn main() {
@@ -25,6 +18,9 @@ async fn main() {
         match args[1].as_str() {
             "list" => {
                 list::main(&cli_command).await;
+            },
+            "install" => {
+                install::main(&cli_command).await;
             },
             _ => println!("Command not found"),
         }

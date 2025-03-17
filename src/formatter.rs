@@ -29,6 +29,7 @@ pub fn colorize(input: &str) -> String {
             colored.push(c);
         }
     }
+    colored.push_str("\x1b[0m");
     colored
 }
 
