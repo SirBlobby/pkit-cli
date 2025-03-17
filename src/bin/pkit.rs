@@ -17,13 +17,20 @@ use pkit::commands::list;
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
-    let cli_command: parser::ClICommand = parser::main(&args[2..]);
 
-    match args[1].as_str() {
-        "list" => {
-            list::main(&cli_command);
-        },
-        _ => println!("Command not found"),
+    if args.len() > 1 {
+
+        let cli_command: parser::ClICommand = parser::main(&args[2..]);
+
+        match args[1].as_str() {
+            "list" => {
+                list::main(&cli_command).await;
+            },
+            _ => println!("Command not found"),
+        }
+    } else {
+        println!("Usage: pkit <command> <subcommand> [args]");
+        return;
     }
     
 }

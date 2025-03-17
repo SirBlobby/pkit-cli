@@ -3,15 +3,14 @@ use std::fs;
 
 use reqwest;
 
-pub async fn get(url: &str) {
+pub async fn get(url: &str) -> reqwest::Response {
     let client: reqwest::Client = reqwest::Client::new();
 
     let resp: reqwest::Response = client.get(url)
         .send()
         .await
         .expect("Failed to send request");
-
-    println!("Status: {:?}", resp.status());
+    resp
 }
 
 pub async fn post(url: &str) {  
