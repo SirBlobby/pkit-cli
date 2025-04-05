@@ -18,6 +18,16 @@ impl ClICommand {
         }
     }
 
+    pub fn get_flag(&self, flag: &str) -> Option<&Flag> {
+        for f in &self.flags {
+            if f.flag == flag {
+                return Some(f);
+            }
+        }
+
+        return None;
+    }
+
     pub fn get_first(&self) -> String {
         if self.command.is_empty() { return String::new(); }
         return self.command[0].clone();
