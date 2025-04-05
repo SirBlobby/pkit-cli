@@ -1,9 +1,11 @@
 
+use std::env::consts::{OS, ARCH};
+
 use json;
 
 pub mod request;
 
-const API_URL: &str = "https://pkit.sirblob.me/api";
+const API_URL: &str = "https://pkit.sirblob.co/api";
 
 pub struct Version {
     pub language: String,
@@ -22,18 +24,14 @@ fn get_filters() -> String {
     let mut filters:String = String::new();
 
     filters.push_str("?platform=");
-    if cfg!(target_os = "windows") { filters.push_str("win"); }
-    if cfg!(target_os = "macos") { filters.push_str("darwin"); }
-    if cfg!(target_os = "linux") { filters.push_str("linux"); }
+    if OS == "windows" { filters.push_str("win"); }
+    if OS == "macos" { filters.push_str("darwin"); }
+    if OS == "linux" { filters.push_str("linux"); }
 
     filters.push_str("&arch=");
-    if cfg!(target_arch = "x86_64") && cfg!(target_pointer_width = "64") { 
-        filters.push_str("x64"); 
-    } else if cfg!(target_arch = "arm") && cfg!(target_pointer_width = "64") { 
-        filters.push_str("arm64"); 
-    } else {
-        filters.push_str("none");
-    }
+    if ARCH == "x86_64" { filters.push_str("x64"); }
+    else if (ARCH == "arm" && cfg!(target_pointer_width = "64")) || ARCH == "aarch64" { filters.push_str("arm64"); }
+    else { filters.push_str("none"); }
 
     filters
 }

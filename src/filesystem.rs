@@ -5,14 +5,18 @@ use zip::ZipArchive;
 use flate2::read::GzDecoder;
 use tar::Archive;
 
+pub mod config;
+
 pub fn open(path: &str) -> std::fs::File {
     let file = std::fs::File::open(path).unwrap();
     file
 }
 
-pub fn read(file: &mut std::fs::File) -> String {
+pub fn read(file: &std::fs::File) -> String {
     let mut contents = String::new();
-    let _ = file.read_to_string( &mut contents);
+    let _ = file
+        .take(100)
+        .read_to_string(&mut contents);
     contents
 }
 

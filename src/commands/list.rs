@@ -1,7 +1,9 @@
 use crate::{formatter::colorize, formatter::capitalize_first};
-use crate::api;
+use crate::api::{self};
 
 use crate::parser::ClICommand;
+
+use crate::filesystem::config::{Config, Installed};
 
 async fn print_available_languages() {
 
@@ -26,16 +28,37 @@ async fn print_available_language_versions(language: &str) {
     println!("{}", colorize(&format!("Use &3pkit install {} <version>&r to install a specific version.", language.name)));
 }
 
+fn print_installed_languages() {
+    println!("{}", colorize("&aInstalled Languages&r:"));
+    let config = Config::new();
+    let installed: Vec<Installed> = config.installed;
+
+    for lang in installed.iter() {
+        println!("{}", colorize(&format!("&e{}&r (&3{}&r)", lang.language, lang.version)));
+    }
+    println!();
+    println!("{}", colorize("Use &3pkit default <language>&r to set a default language."));
+}
+
 
 // pkit list - List available languages
 // pkit list <language> - List available versions for a specific language
 // pkit list <language> <version> - List available platforms for a specific version
-
+// pkit list installed - List installed languages
 
 pub async fn main(cli: &ClICommand) {
 
     if cli.command.len() > 0 {
-        print_available_language_versions(&cli.get_first()).await;
+
+        match cli.get_first().as_str() {
+            "installed" => {
+                print_installed_languages();
+            },
+            _ => {
+                print_available_language_versions(&cli.get_first()).await;
+            }
+        }
+
     } else {
         print_available_languages().await;
     }
