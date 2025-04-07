@@ -8,8 +8,8 @@ use tar::Archive;
 pub mod config;
 
 pub fn open(path: &str) -> std::fs::File {
-    let file = std::fs::File::open(path).unwrap();
-    file
+    
+    std::fs::File::open(path).unwrap()
 }
 
 pub fn read(file: &std::fs::File) -> String {
@@ -143,7 +143,7 @@ fn unzip_file(zip_path: &str, destination: &str) -> bool {
         }
     }
 
-    find_folder_with_bin_and_copy(&Path::new(destination).join(archive_name), &Path::new(destination)).unwrap();
+    find_folder_with_bin_and_copy(&Path::new(destination).join(archive_name), Path::new(destination)).unwrap();
 
     println!("Extracted zip to {}/{}", destination, archive_name);
     true
@@ -180,7 +180,7 @@ fn extract_tar_gz(tar_gz_path: &str, destination: &str) -> bool {
         return false;
     }
 
-    find_folder_with_bin_and_copy(&extract_dir, &Path::new(destination)).unwrap();
+    find_folder_with_bin_and_copy(&extract_dir, Path::new(destination)).unwrap();
 
     fs::remove_dir_all(&extract_dir).unwrap();
     

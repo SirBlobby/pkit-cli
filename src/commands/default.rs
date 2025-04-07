@@ -1,7 +1,6 @@
 use std::env;
 use std::process::Command;
 
-use crate::filesystem;
 use crate::parser::ClICommand;
 
 use crate::filesystem::config::{Config, Installed};
@@ -89,7 +88,6 @@ pub fn add_pkit_path(new_path: &str, lang: &str) {
 
 #[cfg(target_os = "windows")]
 pub fn add_pkit_path(new_path: &str, lang: &str) {
-    return;
 }
 
 
@@ -98,7 +96,7 @@ pub fn update_pkit_path(new_path: &str, lang: &str) {
     {
         let labeled_path = format!("{};{}", new_path, "pkit_marker");
         let output = Command::new("cmd")
-            .args(&["/C", &format!("setx PATH \"{};{}\"", labeled_path, env::var("PATH").unwrap_or_default())])
+            .args(["/C", &format!("setx PATH \"{};{}\"", labeled_path, env::var("PATH").unwrap_or_default())])
             .output()
             .expect("Failed to execute command");
 
@@ -143,7 +141,7 @@ pub fn remove_pkit_path() {}
 fn get_installed_language(lang: &str, version: &str) -> Installed {
     let config = Config::new();
 
-    let installed: Option<&Installed> = config.get(&lang, &version);
+    let installed: Option<&Installed> = config.get(lang, version);
 
     if installed.is_some() {
         Installed { language: installed.unwrap().language.clone(), version: installed.unwrap().version.clone(), path: installed.unwrap().path.clone(), default: installed.unwrap().default }

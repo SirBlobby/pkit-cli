@@ -14,7 +14,7 @@ async fn print_available_languages() {
     }
 
     println!("{}", colorize(&format!("&aAvailable Languages&r: &e{}", languages.join("&r, &e"))));
-    println!("{}", colorize(&format!("Use &3pkit list <language>&r to list available versions for a specific language.")));
+    println!("{}", colorize("Use &3pkit list <language>&r to list available versions for a specific language."));
 }
 
 async fn print_available_language_versions(language: &str) {
@@ -48,7 +48,7 @@ fn print_installed_languages() {
 
 pub async fn main(cli: &ClICommand) {
 
-    if cli.command.len() > 0 {
+    if !cli.command.is_empty() {
 
         match cli.get_first().as_str() {
             "installed" => {

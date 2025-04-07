@@ -10,6 +10,12 @@ pub struct Flag {
 }
 
 
+impl Default for ClICommand {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ClICommand {
     pub fn new() -> ClICommand {
         ClICommand {
@@ -19,18 +25,12 @@ impl ClICommand {
     }
 
     pub fn get_flag(&self, flag: &str) -> Option<&Flag> {
-        for f in &self.flags {
-            if f.flag == flag {
-                return Some(f);
-            }
-        }
-
-        return None;
+        self.flags.iter().find(|&f| f.flag == flag)
     }
 
     pub fn get_first(&self) -> String {
         if self.command.is_empty() { return String::new(); }
-        return self.command[0].clone();
+        self.command[0].clone()
     }
 
     pub fn remove_first(&mut self) {
@@ -111,7 +111,7 @@ fn remove_args(tokens: Vec<String>, args: &[String]) -> Vec<String> {
         }
     }
 
-    return new_tokens;
+    new_tokens
 }
 
 
@@ -158,15 +158,15 @@ pub fn get_flags(tokens: &mut Vec<String>) -> Vec<Flag> {
     // Here we pass a reference to removed_tokens instead of moving it
     *tokens = remove_args(tokens.clone(), &removed_tokens);
 
-    return flags;
+    flags
 }
 
 pub fn main(commands: &[String]) -> ClICommand {
     let mut tokens: Vec<String> = Vec::from(commands); // string_reader(command);
 
-    return ClICommand {
+    ClICommand {
         flags: get_flags(&mut tokens),
         command: tokens
-    };
+    }
 }
 

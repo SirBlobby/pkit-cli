@@ -17,6 +17,12 @@ pub struct Config {
     pub installed: Vec<Installed>
 }
  
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Config {
 
     pub fn new() -> Config {
@@ -48,7 +54,7 @@ impl Config {
             std::process::exit(1);
         }
 
-        let _ = std::fs::create_dir_all(&format!("{}/bin", path));
+        let _ = std::fs::create_dir_all(format!("{}/bin", path));
     }
 
     pub fn read() -> Config {
@@ -123,21 +129,11 @@ impl Config {
     }
 
     pub fn get_default(&self, language: &str) -> Option<&Installed> {
-        for install in &self.installed {
-            if install.language == language && install.default {
-                return Some(install);
-            }
-        }
-        None
+        self.installed.iter().find(|&install| install.language == language && install.default)
     }
 
     pub fn get(&self, language: &str, version: &str) -> Option<&Installed> {
-        for install in &self.installed {
-            if install.language == language && install.version == version {
-                return Some(install);
-            }
-        }
-        None
+        self.installed.iter().find(|&install| install.language == language && install.version == version)
     }
 
     pub fn update(&mut self, language: &str, version: &str, path: &str) {

@@ -65,7 +65,7 @@ pub async fn get_language(language: &str) -> Language {
 
     Language {
         name: language.to_string(),
-        versions: versions
+        versions
     }
 }
 
