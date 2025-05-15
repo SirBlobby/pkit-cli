@@ -27,9 +27,10 @@ pub fn write(path: &str, contents: &str) -> bool {
 }
 
 pub fn append(path: &str, contents: &str) -> bool {
-    let mut file = File
-        ::open(path)
-        .expect("Unable to open file");
+    let mut file = File::options()
+        .append(true)
+        .open(path)
+        .unwrap();
     let _ = file.write_all(contents.as_bytes());
     true
 }

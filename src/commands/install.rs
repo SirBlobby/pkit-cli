@@ -38,11 +38,12 @@ pub async fn install_software(language: &str, version: &str) {
 
     let mut config = Config::new();
 
+    let default_path = format!("{}/bin/{}/{}/", get_root_folder(), software.language, software.version);
     if input.trim() == "y" {
-        config.add(&software.language, &software.version, &format!("/bin/{}/{}/", software.language, software.version), true);
-        commands::default::add_pkit_path(&format!("{}/bin/{}/{}/", config.path, software.language, software.version), &software.language);
+        config.add(&software.language, &software.version, &default_path, true);
+        commands::default::add_pkit_path(&default_path, &software.language);
     } else {
-        config.add(&software.language, &software.version, &format!("./bin/{}/{}/", software.language, software.version), false);
+        config.add(&software.language, &software.version, &default_path, false);
         std::process::exit(0);
     }
 }
