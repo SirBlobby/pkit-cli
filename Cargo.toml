@@ -1,7 +1,7 @@
 [package]
 name = "pkit"
 version = "0.0.1"
-authors = ["Sir Blob <dev@sirblob.me>"]
+authors = ["Sir Blob <dev@sirblob.co>"]
 edition = "2024"
 
 [dependencies]
