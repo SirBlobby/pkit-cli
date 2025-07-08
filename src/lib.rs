@@ -8,6 +8,8 @@ pub mod formatter;
 
 pub mod api;
 
+pub mod cli;
+
 pub fn get_root_folder() -> String {
     // Get the path to the current executable
     let exe_path = std::env::current_exe().unwrap_or_else(|_| {
