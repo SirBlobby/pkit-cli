@@ -1,7 +1,7 @@
 
 use std::{io::Read, path};
 
-use crate::filesystem;
+use crate::{filesystem, get_root_folder};
 
 use json;
 
@@ -26,19 +26,16 @@ impl Default for Config {
 impl Config {
 
     pub fn new() -> Config {
-        let root_path = std::env::current_exe().unwrap();
-        let parent_path = root_path.parent().unwrap();
+        let root_path = get_root_folder();
 
-        println!("Parent path: {}", parent_path.display());
+        Self::files_check(&format!("{}", root_path));
 
-        Self::files_check(&format!("{}", parent_path.display()));
-
-        let config_path = format!("{}/bin/pkit.json", parent_path.display());
+        let config_path = format!("{}/pkit.json", root_path);
 
         let config: Config;
 
         if !path::Path::new(&config_path).exists() {
-            config = Config { path: format!("{}", parent_path.display()), installed: Vec::new() };
+            config = Config { path: format!("{}", root_path), installed: Vec::new() };
             config.write();
         } else {
             config = Config::read();
@@ -58,7 +55,7 @@ impl Config {
     }
 
     pub fn read() -> Config {
-        let file: std::fs::File = filesystem::open("./bin/pkit.json");
+        let file: std::fs::File = filesystem::open(&format!("{}/pkit.json", get_root_folder()));
         let reader = std::io::BufReader::new(file);
         let json_str: String = reader.bytes().map(|x| x.unwrap() as char).collect();
         let json_data: json::JsonValue = json::parse(&json_str).unwrap();
@@ -93,7 +90,7 @@ impl Config {
         json_data["installed"] = installed;
         json_data["path"] = self.path.clone().into();
 
-        filesystem::write("./bin/pkit.json", &json_data.dump());
+        filesystem::write(&format!("{}/pkit.json", get_root_folder()), &json_data.dump());
     }
 
 

@@ -1,142 +1,16 @@
-use std::env;
-use std::process::Command;
-
-use crate::parser::ClICommand;
-
 use crate::filesystem::config::{Config, Installed};
 
-use crate::formatter::colorize;
+use crate::formatter::{print_colored, print_error, print_success};
 
-// if linux or macos, check if the path to the pkit-init.sh file in bin folder is in the PATH
-// if linux or macos, add the path to the pkit-init.sh file in bin folder
-// if windows, add directly to the PATH
-
-// add this to the path for linux and macos
-
-// export "$HOME/{pkit_dir}"
-// [[ -s "$HOME/{pkit_dir}/bin/pkit-init.sh" ]] && source "$HOME/{pkit_dir}/bin/pkit-init.sh"
-
-
+#[warn(unused_variables)]
 #[cfg(target_os = "linux")]
-pub fn add_pkit_path(new_path: &str, lang: &str) {
-    let shell = env::var("SHELL").unwrap_or_default();
-    let shell_config = if shell.contains("zsh") {
-        "~/.zshrc"
-    } else if shell.contains("bash") {
-        "~/.bashrc"
-    } else {
-        "~/.profile"
-    };
-
-    // check if the pkit-init.sh file is in the PATH already
-    let output = Command::new("sh")
-        .args(&["-c", "command -v pkit-init.sh"])
-        .output()
-        .expect("Failed to execute command");
-
-    if output.status.success() {
-        println!("Path already updated on Linux.");
-        return;
-    }
-
-    // add the path to the ./bin/pkit-init.sh file in the bin folder use export "{path}:$PATH"
-    let labeled_path = format!("export \"{}\" # pkit_{}", new_path, lang);
-    filesystem::append("./bin/pkit-init.sh", &labeled_path);
-
-    if output.status.success() {
-        println!("Path updated successfully on Linux with a 'pkit' label.");
-        println!("Don't forget to reload your shell configuration file with 'source {}' or restart your terminal.", shell_config);
-    } else {
-        println!("Failed to update path on Linux. Error: {:?}", output.stderr);
-    }
-
+pub fn add_pkit_path(_path: &str, _lang: &str) {
+    return;
 }
 
-#[cfg(target_os = "macos")]
-pub fn add_pkit_path(new_path: &str, lang: &str) {
-    let shell = env::var("SHELL").unwrap_or_default();
-    let shell_config = if shell.contains("zsh") {
-        "~/.zshrc"
-    } else if shell.contains("bash") {
-        "~/.bashrc"
-    } else {
-        "~/.profile"
-    };
+// pub fn update_pkit_path(new_path: &str, lang: &str) {}
 
-    // check if the pkit-init.sh file is in the PATH already
-    let output = Command::new("sh")
-        .args(&["-c", "command -v pkit-init.sh"])
-        .output()
-        .expect("Failed to execute command");
-
-    if output.status.success() {
-        println!("Path already updated on macOS.");
-        return;
-    }
-
-    // add the path to the ./bin/pkit-init.sh file in the bin folder use export "{path}:$PATH"
-    let labeled_path = format!("export \"{}\" # pkit_{}", new_path, lang);
-    filesystem::append("./bin/pkit-init.sh", &labeled_path);
-
-    if output.status.success() {
-        println!("Path updated successfully on macOS with a 'pkit' label.");
-        println!("Don't forget to reload your shell configuration file with 'source {}' or restart your terminal.", shell_config);
-    } else {
-        println!("Failed to update path on macOS. Error: {:?}", output.stderr);
-    }
-}
-
-#[cfg(target_os = "windows")]
-pub fn add_pkit_path(new_path: &str, lang: &str) {
-}
-
-
-pub fn update_pkit_path(new_path: &str, lang: &str) {
-    #[cfg(target_os = "windows")]
-    {
-        let labeled_path = format!("{};{}", new_path, "pkit_marker");
-        let output = Command::new("cmd")
-            .args(["/C", &format!("setx PATH \"{};{}\"", labeled_path, env::var("PATH").unwrap_or_default())])
-            .output()
-            .expect("Failed to execute command");
-
-        if output.status.success() {
-            println!("Path updated successfully on Windows with a 'pkit' marker.");
-        } else {
-            println!("Failed to update path on Windows. Error: {:?}", output.stderr);
-        }
-    }
-
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
-    {
-        let shell = env::var("SHELL").unwrap_or_default();
-        let shell_config = if shell.contains("zsh") {
-            "~/.zshrc"
-        } else if shell.contains("bash") {
-            "~/.bashrc"
-        } else {
-            "~/.profile"
-        };
-
-        let labeled_path = format!("export PKIT_PATH=\"{}\" # pkit_{}", new_path, lang);
-        let command = format!("echo '{}' >> {}", labeled_path, shell_config);
-
-        let output = Command::new("sh")
-            .args(&["-c", &command])
-            .output()
-            .expect("Failed to execute command");
-
-        if output.status.success() {
-            println!("Path updated successfully on Linux/macOS with a 'pkit' label.");
-            println!("Don't forget to reload your shell configuration file with 'source {}' or restart your terminal.", shell_config);
-        } else {
-            println!("Failed to update path on Linux/macOS. Error: {:?}", output.stderr);
-        }
-    }
-}
-
-
-pub fn remove_pkit_path() {}
+// pub fn remove_pkit_path() {}
 
 fn get_installed_language(lang: &str, version: &str) -> Installed {
     let config = Config::new();
@@ -146,34 +20,52 @@ fn get_installed_language(lang: &str, version: &str) -> Installed {
     if installed.is_some() {
         Installed { language: installed.unwrap().language.clone(), version: installed.unwrap().version.clone(), path: installed.unwrap().path.clone(), default: installed.unwrap().default }
     } else {
-        println!("{} version {} is not installed.", lang, version);
+        print_error(&format!("{} version {} is not installed.", lang, version));
         std::process::exit(1);
     }
 }
 
-fn set_default(cli: &ClICommand) {
-    let lang = &cli.command[0];
-    let version = &cli.command[1];
-
-    let installed = get_installed_language(lang, version);
-
-    let mut config = Config::new();
-    config.set_default(&installed.language, &installed.version);
-
-    add_pkit_path(&installed.path, &installed.language);
-
-    println!("{}", colorize(&format!("{} version {} is now the default.", installed.language, installed.version)));
+pub fn run_default(language: &str) {
+    // For now, let's assume version can be derived from installed packages
+    // In a real implementation, you might want to list available versions
+    // or use the latest installed version
+    let config = Config::new();
+    let installed_versions: Vec<&Installed> = config.installed.iter()
+        .filter(|pkg| pkg.language == language)
+        .collect();
+    
+    if installed_versions.is_empty() {
+        print_error(&format!("No versions of {} are installed.", language));
+        std::process::exit(1);
+    }
+    
+    if installed_versions.len() == 1 {
+        let installed = installed_versions[0];
+        let mut config = Config::new();
+        config.set_default(&installed.language, &installed.version);
+        add_pkit_path(&installed.path, &installed.language);
+        print_success(&format!("{} version {} is now the default.", installed.language, installed.version));
+    } else {
+        print_colored(&format!("&eMultiple versions of {} are installed:&r", language));
+        for (i, installed) in installed_versions.iter().enumerate() {
+            print_colored(&format!("  &3{}&r: &e{}&r", i + 1, installed.version));
+        }
+        print_colored(&format!("Please specify a version: &3pkit default {} <version>&r", language));
+    }
 }
 
+pub fn run_default_with_version(language: &str, version: &str) {
+    let installed = get_installed_language(language, version);
+    let mut config = Config::new();
+    config.set_default(&installed.language, &installed.version);
+    add_pkit_path(&installed.path, &installed.language);
+    print_success(&format!("{} version {} is now the default.", installed.language, installed.version));
+}
 
-pub fn main(cli: &ClICommand) {
-    match cli.command.len() {
-        2 => {
-            set_default(cli);
-        },
-        _ => {
-            println!("{}", colorize(&format!("Invalid number of arguments. Expected 2, got {}", cli.command.len())));
-            std::process::exit(1);
-        }
+pub fn handle_default_command(language: &str, version: Option<&String>) {
+    if let Some(ver) = version {
+        run_default_with_version(language, ver);
+    } else {
+        run_default(language);
     }
 }

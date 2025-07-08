@@ -1,5 +1,3 @@
-
-
 pub fn colorize(input: &str) -> String {
     let mut colored: String = String::new();
     let mut chars: std::str::Chars<'_> = input.chars();
@@ -48,4 +46,25 @@ pub fn add_strings(args: &[String]) -> String {
         result.push_str(arg);
     }
     result
+}
+
+// Custom print functions that use the colorize formatter
+pub fn print_colored(message: &str) {
+    println!("{}", colorize(message));
+}
+
+pub fn print_error(message: &str) {
+    eprintln!("{}", colorize(&format!("&4Error: {}&r", message)));
+}
+
+pub fn print_success(message: &str) {
+    println!("{}", colorize(&format!("&aSuccess: {}&r", message)));
+}
+
+pub fn print_info(message: &str) {
+    println!("{}", colorize(&format!("&3Info: {}&r", message)));
+}
+
+pub fn print_warning(message: &str) {
+    println!("{}", colorize(&format!("&eWarning: {}&r", message)));
 }
