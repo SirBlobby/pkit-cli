@@ -1,4 +1,4 @@
-
+// Legacy command modules - now using clap for CLI parsing
 pub struct ClICommand {
     pub command: Vec<String>,
     pub flags: Vec<Flag>,

@@ -54,6 +54,32 @@ pub enum Commands {
         /// Version to set as default (optional)
         #[arg(help = colorize("&eVersion to set as default (optional)&r"))]
         version: Option<String>,
+        /// Show the default version for the specified language
+        #[arg(long, help = colorize("&bShow the default version for the specified language&r"))]
+        show: bool,
+    },
+    /// Uninstall a language and version
+    #[command(about = colorize("&aUninstall a language and version&r"))]
+    Uninstall {
+        /// Language to uninstall
+        #[arg(help = colorize("&eLanguage to uninstall&r"))]
+        language: String,
+        /// Version to uninstall (optional)
+        #[arg(help = colorize("&eVersion to uninstall (optional)&r"))]
+        version: Option<String>,
+        /// Uninstall all versions of the specified language
+        #[arg(long, help = colorize("&bUninstall all versions of the specified language&r"))]
+        all: bool,
+    },
+    /// Switch to a different language version for the current session
+    #[command(about = colorize("&aSwitch to a different language version for the current session&r"))]
+    Switch {
+        /// Language to switch to
+        #[arg(help = colorize("&eLanguage to switch to&r"))]
+        language: String,
+        /// Version to switch to
+        #[arg(help = colorize("&eVersion to switch to&r"))]
+        version: String,
     },
 }
 

@@ -1,10 +1,11 @@
 [package]
 name = "pkit"
 version = "0.0.1"
-authors = ["Sir Blob <dev@sirblob.me>"]
+authors = ["Sir Blob <dev@sirblob.co>"]
 edition = "2024"
 
 [dependencies]
+home = "0.5.9"
 json = "0.12.4"
 reqwest = { version = "0.12.14", features = ["json", "stream", "blocking"] }
 futures-util = "0.3"

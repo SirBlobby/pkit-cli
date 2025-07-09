@@ -1,254 +1,175 @@
 use std::fs::{self, File};
-use std::io::{self, prelude::*, Read};
+use std::io::{self};
 use std::path::{Path, PathBuf};
 use zip::ZipArchive;
 use flate2::read::GzDecoder;
 use tar::Archive;
+use crate::formatter::{print_message, MessageType};
 
 pub mod config;
+pub mod path;
 
-pub fn open(path: &str) -> std::fs::File {
-    
-    std::fs::File::open(path).unwrap()
+pub use path::{
+    get_pkit_dir, get_home_dir, get_bashrc_path,
+    setup_shell_environment, detect_os, get_primary_shell_config_path, 
+    generate_env_setup_lines, generate_path_export, get_shell_config_files, 
+    get_pkit_data_dir, get_pkit_cache_dir,
+    migrate_old_pkit_dir, get_pkit_dir_with_migration, get_pkit_directories_info,
+    print_pkit_directories, reload_environment
+};
+
+pub fn read(path: &Path) -> io::Result<String> {
+    fs::read_to_string(path)
 }
 
-pub fn read(file: &std::fs::File) -> String {
-    let mut contents = String::new();
-    let _ = file
-        .take(100)
-        .read_to_string(&mut contents);
-    contents
-}
-
-pub fn write(path: &str, contents: &str) -> bool {
-    let mut file = File::create(path).unwrap();
-    let _ = file.write_all(contents.as_bytes());
-    true
-}
-
-pub fn append(path: &str, contents: &str) -> bool {
-    let mut file = File::options()
-        .append(true)
-        .open(path)
-        .unwrap();
-    let _ = file.write_all(contents.as_bytes());
-    true
-}
-
-pub fn delete(path: &str) -> bool {
-    let _ = fs::remove_file(path);
-    true
-}
-
-pub fn extract(archive_path: &str) -> bool {
-
-    let path = Path::new(archive_path);
-    if !path.exists() {
-        eprintln!("Archive not found: {}", archive_path);
-        return false;
+pub fn write(path: &Path, contents: &str) -> io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
     }
+    fs::write(path, contents)
+}
 
-    let destination = match path.parent() {
-        Some(parent) => parent.to_str().unwrap_or("."),
-        None => ".",
-    };
-    
-    if archive_path.ends_with(".zip") {
-        unzip_file(archive_path, destination)
-    } else if archive_path.ends_with(".tar.gz") || archive_path.ends_with(".tgz") {
-        extract_tar_gz(archive_path, destination)
-    } else {
-        eprintln!("Unsupported archive format: {}", archive_path);
-        false
+pub fn delete(path: &Path) -> io::Result<()> {
+    fs::remove_file(path)
+}
+
+pub fn extract(archive_path: &Path) -> io::Result<()> {
+    let destination = archive_path.parent().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidInput, "Invalid archive path")
+    })?;
+
+    let extension = archive_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+
+    match extension {
+        "zip" => unzip_file(archive_path, destination),
+        "gz" if archive_path.to_str().unwrap_or("").ends_with(".tar.gz") => {
+            extract_tar_gz(archive_path, destination)
+        }
+        "tgz" => extract_tar_gz(archive_path, destination),
+        _ => {
+            let err_msg = format!("Unsupported archive format: {:?}", archive_path);
+            print_message(MessageType::Error(&err_msg));
+            Err(io::Error::new(io::ErrorKind::InvalidData, err_msg))
+        }
     }
 }
 
-fn unzip_file(zip_path: &str, destination: &str) -> bool {
+fn unzip_file(zip_path: &Path, destination: &Path) -> io::Result<()> {
+    let file = File::open(zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
 
-    let file = match File::open(zip_path) {
-        Ok(file) => file,
-        Err(e) => {
-            eprintln!("Failed to open zip file: {}", e);
-            return false;
-        }
-    };
-
-    let mut archive = match ZipArchive::new(file) {
-        Ok(archive) => archive,
-        Err(e) => {
-            eprintln!("Failed to read zip archive: {}", e);
-            return false;
-        }
-    };
-
-    let archive_name = Path::new(zip_path)
+    let archive_name = zip_path
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("extracted");
-        
-    for i in 0..archive.len() {
-        let mut file = match archive.by_index(i) {
-            Ok(file) => file,
-            Err(e) => {
-                eprintln!("Failed to read file in archive: {}", e);
-                continue;
-            }
-        };
+    let extract_to = destination.join(archive_name);
 
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
         let outpath = match file.enclosed_name() {
-            Some(path) => PathBuf::from(destination).join(archive_name).join(path),
-            None => {
-                eprintln!("Invalid file path in zip: {}", file.name());
-                continue;
-            }
+            Some(path) => extract_to.join(path),
+            None => continue,
         };
 
         if file.name().ends_with('/') {
-            if let Err(e) = fs::create_dir_all(&outpath) {
-                eprintln!("Failed to create directory {}: {}", outpath.display(), e);
-                continue;
-            }
-            continue;
-        }
-
-        if let Some(parent) = outpath.parent() {
-            if !parent.exists() {
-                if let Err(e) = fs::create_dir_all(parent) {
-                    eprintln!("Failed to create directory {}: {}", parent.display(), e);
-                    continue;
+            fs::create_dir_all(&outpath)?;
+        } else {
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(p)?;
                 }
             }
+            let mut outfile = File::create(&outpath)?;
+            io::copy(&mut file, &mut outfile)?;
         }
 
-        let mut outfile = match File::create(&outpath) {
-            Ok(file) => file,
-            Err(e) => {
-                eprintln!("Failed to create file {}: {}", outpath.display(), e);
-                continue;
-            }
-        };
-
-        if let Err(e) = io::copy(&mut file, &mut outfile) {
-            eprintln!("Failed to write file {}: {}", outpath.display(), e);
-            continue;
-        }
-
-        #[cfg(unix)] {
+        #[cfg(unix)]
+        {
             use std::os::unix::fs::PermissionsExt;
-            
             if let Some(mode) = file.unix_mode() {
-                if let Err(e) = fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)) {
-                    eprintln!("Failed to set permissions for {}: {}", outpath.display(), e);
-                }
+                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode))?;
             }
         }
     }
-
-    find_folder_with_bin_and_copy(&Path::new(destination).join(archive_name), Path::new(destination)).unwrap();
-
-    println!("Extracted zip to {}/{}", destination, archive_name);
-    true
+    
+    find_folder_with_bin_and_copy(&extract_to, destination)?;
+    fs::remove_dir_all(&extract_to)?;
+    Ok(())
 }
 
-fn extract_tar_gz(tar_gz_path: &str, destination: &str) -> bool {
+fn extract_tar_gz(tar_gz_path: &Path, destination: &Path) -> io::Result<()> {
+    let file = File::open(tar_gz_path)?;
+    let gz = GzDecoder::new(file);
+    let mut archive = Archive::new(gz);
 
-    let file = match File::open(tar_gz_path) {
-        Ok(file) => file,
-        Err(e) => {
-            eprintln!("Failed to open tar.gz file: {}", e);
-            return false;
-        }
-    };
-
-    let archive_name = Path::new(tar_gz_path)
+    let archive_name = tar_gz_path
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("extracted");
+    let extract_to = destination.join(archive_name);
     
-
-    let extract_dir = PathBuf::from(destination).join(archive_name);
-    if let Err(e) = fs::create_dir_all(&extract_dir) {
-        eprintln!("Failed to create extraction directory: {}", e);
-        return false;
-    }
-
-    let gz: GzDecoder<File> = GzDecoder::new(file);
+    archive.unpack(&extract_to)?;
     
-    let mut archive: Archive<GzDecoder<File>> = Archive::new(gz);
-    
-    if let Err(e) = archive.unpack(&extract_dir) {
-        eprintln!("Failed to extract tar.gz archive: {}", e);
-        return false;
-    }
-
-    find_folder_with_bin_and_copy(&extract_dir, Path::new(destination)).unwrap();
-
-    fs::remove_dir_all(&extract_dir).unwrap();
-    
-    println!("Extracted tar.gz to {}/{}", destination, archive_name);
-    true
+    find_folder_with_bin_and_copy(&extract_to, destination)?;
+    fs::remove_dir_all(&extract_to)?;
+    Ok(())
 }
 
-
-pub fn find_folder_with_bin_and_copy(search_path: &Path, target_path: &Path) -> Result<(), io::Error> {
-
+fn find_folder_with_bin_and_copy(search_path: &Path, target_path: &Path) -> io::Result<()> {
     if !target_path.exists() {
         fs::create_dir_all(target_path)?;
     }
-    
-    let source_dir = find_dir_with_bin(search_path)?;
 
-    if let Some(dir) = source_dir {
+    if let Some(dir) = find_dir_with_bin(search_path)? {
         copy_dir_contents(&dir, target_path)?;
     } else {
-        eprintln!("No directory with 'bin' subdirectory found in {:?}", search_path);
+        let err_msg = format!("No directory with 'bin' subdirectory found in {:?}", search_path);
+        print_message(MessageType::Error(&err_msg));
+        return Err(io::Error::new(io::ErrorKind::NotFound, err_msg));
     }
 
     Ok(())
 }
 
-fn find_dir_with_bin(dir: &Path) -> Result<Option<PathBuf>, io::Error> {
+fn find_dir_with_bin(dir: &Path) -> io::Result<Option<PathBuf>> {
     if !dir.is_dir() {
         return Ok(None);
     }
-    
-    let bin_path = dir.join("bin");
-    if bin_path.is_dir() {
+
+    if dir.join("bin").is_dir() {
         return Ok(Some(dir.to_path_buf()));
     }
-    
+
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        
+
         if path.is_dir() {
             if let Some(found_dir) = find_dir_with_bin(&path)? {
                 return Ok(Some(found_dir));
             }
         }
     }
-    
+
     Ok(None)
 }
 
-fn copy_dir_contents(src: &Path, dst: &Path) -> Result<(), io::Error> {
-
+fn copy_dir_contents(src: &Path, dst: &Path) -> io::Result<()> {
     for entry in fs::read_dir(src)? {
         let entry = entry?;
         let path = entry.path();
         let file_name = path.file_name().unwrap();
         let dst_path = dst.join(file_name);
-        
+
         if path.is_dir() {
-            if !dst_path.exists() {
-                fs::create_dir_all(&dst_path)?;
-            }
-            
+            fs::create_dir_all(&dst_path)?;
             copy_dir_contents(&path, &dst_path)?;
         } else {
             fs::copy(&path, &dst_path)?;
         }
     }
-    
     Ok(())
 }
