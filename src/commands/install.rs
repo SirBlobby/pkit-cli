@@ -78,12 +78,10 @@ async fn install_software_with_data(software: api::Version) {
 pub async fn handle_install_command(language: &str, version: &str) {
     let config = Config::new();
     
-
     if let Some(installed) = config.get(language, version) {
         print_already_installed_message(language, version, installed.default);
         return;
     }
-    
 
     let software = match get_language_version_safe(language, version).await {
         Ok(software) => software,

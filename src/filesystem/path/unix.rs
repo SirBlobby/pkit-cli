@@ -178,6 +178,6 @@ pub fn reload_environment() {
 
 pub fn generate_shell_function() -> String {
     format!(
-        "pkit() {{\n  command pkit \"$@\"\n\n  local env_file=\"${{PKIT_HOME:-$HOME/.pkit}}/pkit_env.sh\"\n\n  if [[ -f \"$env_file\" && -r \"$env_file\" ]]; then\n    case \"$1\" in\n      default|install)\n        source \"$env_file\" && echo \"pkit environment reloaded.\"\n        ;;\n    esac\n  elif [[ \"$1\" == \"default\" || \"$1\" == \"install\" ]]; then\n    echo \"Warning: Environment file not found at $env_file\" >&2\n  fi\n}}\n"
+        "pkit() {{\n  command pkit \"$@\"\n\n  local env_file=\"${{PKIT_HOME:-$HOME/.pkit}}/pkit_env.sh\"\n\n  if [[ -f \"$env_file\" && -r \"$env_file\" ]]; then\n    case \"$1\" in\n      default|install|uninstall)\n        source \"$env_file\" && echo \"pkit environment reloaded.\"\n        ;;\n    esac\n  elif [[ \"$1\" == \"default\" || \"$1\" == \"install\" || \"$1\" == \"uninstall\" ]]; then\n    echo \"Warning: Environment file not found at $env_file\" >&2\n  fi\n}}\n"
     )
 }

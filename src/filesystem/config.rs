@@ -88,7 +88,7 @@ impl Config {
         json_data["path"] = self.path.to_str().unwrap_or("").into();
 
         let config_path = self.path.join("pkit.json");
-        filesystem::write(&config_path, &json_data.dump())
+        filesystem::write(&config_path, &json_data.pretty(2))
     }
 
     pub fn add(&mut self, language: &str, version: &str, path: &str, default: bool) {
