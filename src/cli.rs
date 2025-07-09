@@ -58,6 +58,19 @@ pub enum Commands {
         #[arg(long, help = colorize("&bShow the default version for the specified language&r"))]
         show: bool,
     },
+    /// Uninstall a language and version
+    #[command(about = colorize("&aUninstall a language and version&r"))]
+    Uninstall {
+        /// Language to uninstall
+        #[arg(help = colorize("&eLanguage to uninstall&r"))]
+        language: String,
+        /// Version to uninstall (optional)
+        #[arg(help = colorize("&eVersion to uninstall (optional)&r"))]
+        version: Option<String>,
+        /// Uninstall all versions of the specified language
+        #[arg(long, help = colorize("&bUninstall all versions of the specified language&r"))]
+        all: bool,
+    },
 }
 
 impl Cli {

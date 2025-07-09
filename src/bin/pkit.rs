@@ -1,6 +1,6 @@
 use pkit::filesystem::{config::Config, setup_shell_environment};
 use pkit::cli::{Cli, Commands};
-use pkit::commands::{list, install, default};
+use pkit::commands::{list, install, default, uninstall};
 
 // PATH="$(pwd):$PATH"
 
@@ -21,6 +21,9 @@ async fn main() {
         }
         Commands::Default { language, version, show } => {
             default::handle_default_command(language, version.as_ref(), *show);
+        }
+        Commands::Uninstall { language, version, all } => {
+            uninstall::handle_uninstall_command(language, version.as_ref(), *all);
         }
     }
 }
