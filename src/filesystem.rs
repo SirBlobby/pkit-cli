@@ -10,12 +10,10 @@ pub mod config;
 pub mod path;
 
 pub use path::{
-    get_pkit_dir, get_home_dir, get_bashrc_path,
-    setup_shell_environment, detect_os, get_primary_shell_config_path, 
-    generate_env_setup_lines, generate_path_export, get_shell_config_files, 
+    get_pkit_dir, get_home_dir, detect_os,
     get_pkit_data_dir, get_pkit_cache_dir,
     migrate_old_pkit_dir, get_pkit_dir_with_migration, get_pkit_directories_info,
-    print_pkit_directories, reload_environment
+    print_pkit_directories
 };
 
 pub fn read(path: &Path) -> io::Result<String> {

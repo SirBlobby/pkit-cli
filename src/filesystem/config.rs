@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::io::{self, Write};
-use crate::filesystem::{self, get_pkit_dir, generate_path_export};
+use crate::filesystem::{self, get_pkit_dir};
 use json;
 
 #[derive(Clone)]
@@ -173,7 +173,11 @@ impl Config {
         for install in &self.installed {
             if install.default {
                 let bin_path = PathBuf::from(&install.path).join("bin");
-                file.write_all(generate_path_export(&bin_path.display().to_string()).as_bytes())?;
+                if cfg!(windows) {
+                    writeln!(file, "$env:PATH = \"{};$env:PATH\"", bin_path.display())?;
+                } else {
+                    writeln!(file, "export PATH=\"{}:$PATH\"", bin_path.display())?;
+                }
             }
         }
         Ok(())
