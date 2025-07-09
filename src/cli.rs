@@ -54,6 +54,9 @@ pub enum Commands {
         /// Version to set as default (optional)
         #[arg(help = colorize("&eVersion to set as default (optional)&r"))]
         version: Option<String>,
+        /// Show the default version for the specified language
+        #[arg(long, help = colorize("&bShow the default version for the specified language&r"))]
+        show: bool,
     },
 }
 

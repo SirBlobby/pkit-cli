@@ -1,27 +1,39 @@
+
+
 pub fn colorize(input: &str) -> String {
-    let mut colored: String = String::new();
-    let mut chars: std::str::Chars<'_> = input.chars();
+    let mut colored = String::with_capacity(input.len());
+    let mut chars = input.chars();
     while let Some(c) = chars.next() {
         if c == '&' {
             match chars.next() {
-                Some('0') => colored.push_str("\x1b[30m"), // Black
-                Some('1') => colored.push_str("\x1b[34m"), // Blue
-                Some('2') => colored.push_str("\x1b[32m"), // Green
-                Some('3') => colored.push_str("\x1b[36m"), // Cyan
-                Some('4') => colored.push_str("\x1b[31m"), // Red
-                Some('5') => colored.push_str("\x1b[35m"), // Purple
-                Some('6') => colored.push_str("\x1b[33m"), // Yellow
-                Some('7') => colored.push_str("\x1b[37m"), // White
-                Some('8') => colored.push_str("\x1b[90m"), // Gray
-                Some('9') => colored.push_str("\x1b[94m"), // Light Blue
-                Some('a') => colored.push_str("\x1b[92m"), // Light Green
-                Some('b') => colored.push_str("\x1b[96m"), // Light Cyan
-                Some('c') => colored.push_str("\x1b[91m"), // Light Red 
-                Some('d') => colored.push_str("\x1b[95m"), // Light Purple
-                Some('e') => colored.push_str("\x1b[93m"), // Light Yellow
-                Some('f') => colored.push_str("\x1b[97m"), // Bright White
-                Some('r') => colored.push_str("\x1b[0m"), // Reset
-                _ => colored.push(c),
+                Some(code @ '0'..='9') | Some(code @ 'a'..='f') | Some(code @ 'r') => {
+                    let escape_code = match code {
+                        '0' => "\x1b[30m", // Black
+                        '1' => "\x1b[34m", // Blue
+                        '2' => "\x1b[32m", // Green
+                        '3' => "\x1b[36m", // Cyan
+                        '4' => "\x1b[31m", // Red
+                        '5' => "\x1b[35m", // Purple
+                        '6' => "\x1b[33m", // Yellow
+                        '7' => "\x1b[37m", // White
+                        '8' => "\x1b[90m", // Gray
+                        '9' => "\x1b[94m", // Light Blue
+                        'a' => "\x1b[92m", // Light Green
+                        'b' => "\x1b[96m", // Light Cyan
+                        'c' => "\x1b[91m", // Light Red
+                        'd' => "\x1b[95m", // Light Purple
+                        'e' => "\x1b[93m", // Light Yellow
+                        'f' => "\x1b[97m", // Bright White
+                        'r' => "\x1b[0m",  // Reset
+                        _ => unreachable!(),
+                    };
+                    colored.push_str(escape_code);
+                }
+                Some(other) => {
+                    colored.push('&');
+                    colored.push(other);
+                }
+                None => colored.push('&'),
             }
         } else {
             colored.push(c);
@@ -31,7 +43,6 @@ pub fn colorize(input: &str) -> String {
     colored
 }
 
-
 pub fn capitalize_first(input: &str) -> String {
     let mut chars = input.chars();
     match chars.next() {
@@ -40,32 +51,30 @@ pub fn capitalize_first(input: &str) -> String {
     }
 }
 
-pub fn add_strings(args: &[String]) -> String {
-    let mut result = String::new();
-    for arg in args {
-        result.push_str(arg);
-    }
-    result
+pub enum MessageType<'a> {
+    Success(&'a str),
+    Error(&'a str),
+    Info(&'a str),
+    Warning(&'a str),
+    None(&'a str),
 }
 
-pub fn print_colored(message: &str) {
-    println!("{}", colorize(message));
-}
+pub fn print_message(message_type: MessageType) {
+    let (prefix, color_code, message) = match message_type {
+        MessageType::Success(m) => ("Success: ", 'a', m),
+        MessageType::Error(m) => ("Error: ", 'c', m),
+        MessageType::Info(m) => ("Info: ", 'b', m),
+        MessageType::Warning(m) => ("Warning: ", 'e', m),
+        MessageType::None(m) => ("", 'r', m),
+    };
 
-pub fn print_error(message: &str) {
-    eprintln!("{}", colorize(&format!("&4Error: {}&r", message)));
-}
+    let formatted_message = if !prefix.is_empty() {
+        format!("&{}{}{}&r", color_code, prefix, message)
+    } else {
+        message.to_string()
+    };
 
-pub fn print_success(message: &str) {
-    println!("{}", colorize(&format!("&aSuccess: {}&r", message)));
-}
-
-pub fn print_info(message: &str) {
-    println!("{}", colorize(&format!("&3Info: {}&r", message)));
-}
-
-pub fn print_warning(message: &str) {
-    println!("{}", colorize(&format!("&eWarning: {}&r", message)));
+    println!("{}", colorize(&formatted_message));
 }
 
 const BOX_WIDTH: usize = 85;
@@ -73,7 +82,6 @@ const BOX_WIDTH: usize = 85;
 fn visible_length(text: &str) -> usize {
     let mut length = 0;
     let mut chars = text.chars().peekable();
-    
     while let Some(c) = chars.next() {
         if c == '&' {
             if let Some(next) = chars.peek() {
@@ -88,60 +96,75 @@ fn visible_length(text: &str) -> usize {
     length
 }
 
-pub fn print_box_top() {
+#[derive(Clone, Copy)]
+pub enum BoxAlignment {
+    Left,
+    Center,
+}
+
+pub struct BoxOptions<'a> {
+    pub title: Option<&'a str>,
+    pub title_color: char,
+    pub border_color: char,
+}
+
+impl Default for BoxOptions<'_> {
+    fn default() -> Self {
+        BoxOptions {
+            title: None,
+            title_color: '3',
+            border_color: 'f',
+        }
+    }
+}
+
+pub fn print_box(lines: &[(&str, BoxAlignment)], options: &BoxOptions) {
+    print_box_top(options);
+    for (line, alignment) in lines {
+        print_box_line(line, *alignment, options.border_color);
+    }
+    print_box_bottom(options);
+}
+
+fn print_box_top(options: &BoxOptions) {
+    let border_char = "─";
+    if let Some(title) = options.title {
+        let title_len = visible_length(title);
+        let remaining = BOX_WIDTH.saturating_sub(title_len + 4);
+        let border = border_char.repeat(remaining);
+        println!("{}", colorize(&format!("&{0}┌─ &{1}{2}&r &{0}─{3}┐&r", options.border_color, options.title_color, title, border)));
+    } else {
+        let border = border_char.repeat(BOX_WIDTH);
+        println!("{}", colorize(&format!("&{}┌{}┐&r", options.border_color, border)));
+    }
+}
+
+fn print_box_bottom(options: &BoxOptions) {
     let border = "─".repeat(BOX_WIDTH);
-    print_colored(&format!("&f┌{}┐&r", border));
+    println!("{}", colorize(&format!("&{}└{}┘&r", options.border_color, border)));
 }
 
-pub fn print_box_bottom() {
-    let border = "─".repeat(BOX_WIDTH);
-    print_colored(&format!("&f└{}┘&r", border));
-}
-
-pub fn print_box_line(content: &str) {
+fn print_box_line(content: &str, alignment: BoxAlignment, border_color: char) {
     let content_len = visible_length(content);
-    let padding = if content_len < BOX_WIDTH { BOX_WIDTH - content_len } else { 0 };
-    let spaces = " ".repeat(padding);
-    print_colored(&format!("&f│{}{}&f│&r", content, spaces));
-}
-
-pub fn print_box_line_centered(content: &str) {
-    let content_len = visible_length(content);
-    let total_padding = if content_len < BOX_WIDTH { BOX_WIDTH - content_len } else { 0 };
-    let left_padding = total_padding / 2;
-    let right_padding = total_padding - left_padding;
+    let total_padding = BOX_WIDTH.saturating_sub(content_len);
     
+    let (left_padding, right_padding) = match alignment {
+        BoxAlignment::Left => (1, total_padding - 1),
+        BoxAlignment::Center => (total_padding / 2, total_padding - (total_padding / 2)),
+    };
+
     let left_spaces = " ".repeat(left_padding);
     let right_spaces = " ".repeat(right_padding);
-    print_colored(&format!("&f│{}{}{}&f│&r", left_spaces, content, right_spaces));
-}
-
-pub fn print_usage_box_top(title: &str) {
-    let title_len = visible_length(title);
-    let remaining = BOX_WIDTH.saturating_sub(title_len + 4);
-    let border = "─".repeat(remaining);
-    print_colored(&format!("&8┌─ &3{}&r &8─{}┐&r", title, border));
-}
-
-pub fn print_usage_box_bottom() {
-    let border = "─".repeat(BOX_WIDTH);
-    print_colored(&format!("&8└{}┘&r", border));
-}
-
-pub fn print_usage_box_line(content: &str) {
-    let content_len = visible_length(content);
-    let padding = if content_len < BOX_WIDTH { BOX_WIDTH - content_len } else { 0 };
-    let spaces = " ".repeat(padding);
-    print_colored(&format!("&8│&r{}{}&8│&r", content, spaces));
+    println!("{}", colorize(&format!("&{0}│{1}{2}{3}&{0}│&r", border_color, left_spaces, content, right_spaces)));
 }
 
 pub fn print_table_header(columns: &[(&str, usize)]) {
-    let mut header = String::from("&8  ┌─ ");
+    let mut header = String::from("&8  ┌ ");
     let mut separator = String::from("&8  └─");
     
     for (i, (title, width)) in columns.iter().enumerate() {
         if i > 0 {
-            header.push_str("&8┬─ ");
+            header.push_str("&8─┬─");
             separator.push_str("┴─");
         }
         
@@ -154,24 +177,28 @@ pub fn print_table_header(columns: &[(&str, usize)]) {
     header.push_str("&8┐&r");
     separator.push_str("&8┘&r");
     
-    print_colored(&header);
+    println!("{}", colorize(&header));
 }
 
 pub fn print_table_row(columns: &[(&str, usize)], values: &[&str]) {
     let mut row = String::from("&8  │&r ");
-    
+
     for (i, ((_, width), value)) in columns.iter().zip(values.iter()).enumerate() {
         if i > 0 {
             row.push_str(" &8│&r ");
         }
-        
+
         let value_len = visible_length(value);
-        let padding = width.saturating_sub(value_len);
+        let padding = if i < columns.len() - 1 {
+            (width + 1).saturating_sub(value_len)
+        } else {
+            width.saturating_sub(value_len)
+        };
         row.push_str(&format!("{}{}", value, " ".repeat(padding)));
     }
-    
+
     row.push_str(" &8│&r");
-    print_colored(&row);
+    println!("{}", colorize(&row));
 }
 
 pub fn print_table_footer(columns: &[(&str, usize)]) {
@@ -179,11 +206,11 @@ pub fn print_table_footer(columns: &[(&str, usize)]) {
     
     for (i, (_, width)) in columns.iter().enumerate() {
         if i > 0 {
-            footer.push_str("┴─");
+            footer.push_str("─┴─");
         }
         footer.push_str(&"─".repeat(width + 1));
     }
     
     footer.push_str("&8┘&r");
-    print_colored(&footer);
+    println!("{}", colorize(&footer));
 }

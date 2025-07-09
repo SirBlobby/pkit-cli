@@ -1,71 +1,114 @@
-use crate::filesystem::config::{Config, Installed};
+use crate::filesystem::config::Config;
+use crate::formatter::{
+    capitalize_first, colorize, print_box, print_table_footer, print_table_header,
+    print_table_row, BoxAlignment, BoxOptions,
+};
 
-use crate::formatter::{print_colored, print_error, print_success};
-
-#[warn(unused_variables)]
-#[cfg(target_os = "linux")]
-pub fn add_pkit_path(_path: &str, _lang: &str) {
-    return;
-}
-
-// pub fn update_pkit_path(new_path: &str, lang: &str) {}
-
-// pub fn remove_pkit_path() {}
-
-fn get_installed_language(lang: &str, version: &str) -> Installed {
-    let config = Config::new();
-
-    let installed: Option<&Installed> = config.get(lang, version);
-
-    if installed.is_some() {
-        Installed { language: installed.unwrap().language.clone(), version: installed.unwrap().version.clone(), path: installed.unwrap().path.clone(), default: installed.unwrap().default }
-    } else {
-        print_error(&format!("{} version {} is not installed.", lang, version));
-        std::process::exit(1);
-    }
-}
-
-pub fn run_default(language: &str) {
-    // For now, let's assume version can be derived from installed packages
-    // In a real implementation, you might want to list available versions
-    // or use the latest installed version
-    let config = Config::new();
-    let installed_versions: Vec<&Installed> = config.installed.iter()
-        .filter(|pkg| pkg.language == language)
-        .collect();
-    
-    if installed_versions.is_empty() {
-        print_error(&format!("No versions of {} are installed.", language));
-        std::process::exit(1);
-    }
-    
-    if installed_versions.len() == 1 {
-        let installed = installed_versions[0];
-        let mut config = Config::new();
-        config.set_default(&installed.language, &installed.version);
-        add_pkit_path(&installed.path, &installed.language);
-        print_success(&format!("{} version {} is now the default.", installed.language, installed.version));
-    } else {
-        print_colored(&format!("&eMultiple versions of {} are installed:&r", language));
-        for (i, installed) in installed_versions.iter().enumerate() {
-            print_colored(&format!("  &3{}&r: &e{}&r", i + 1, installed.version));
-        }
-        print_colored(&format!("Please specify a version: &3pkit default {} <version>&r", language));
-    }
-}
-
-pub fn run_default_with_version(language: &str, version: &str) {
-    let installed = get_installed_language(language, version);
+pub fn handle_default_command(language: &str, version: Option<&String>, show: bool) {
     let mut config = Config::new();
-    config.set_default(&installed.language, &installed.version);
-    add_pkit_path(&installed.path, &installed.language);
-    print_success(&format!("{} version {} is now the default.", installed.language, installed.version));
+
+    if show {
+        if let Some(default) = config.get_default(language) {
+            println!("{}", colorize(&format!("  &eDefault {} version: {}&r", language, default.version)));
+        } else {
+            println!("{}", colorize(&format!("  &eNo default version set for {}&r", language)));
+        }
+        return;
+    }
+
+    if let Some(ver) = version {
+        if config.get(language, ver).is_some() {
+            config.set_default(language, ver);
+            config.write_env_script().expect("Failed to write environment script");
+            print_success_message(language, ver);
+        } else {
+            print_not_installed_message(language, ver);
+            std::process::exit(1);
+        }
+    } else {
+        let installed_versions: Vec<_> = config.installed.iter()
+            .filter(|pkg| pkg.language == language)
+            .cloned()
+            .collect();
+
+        if installed_versions.is_empty() {
+            print_no_versions_installed_message(language);
+        } else if installed_versions.len() == 1 {
+            let installed = &installed_versions[0];
+            config.set_default(language, &installed.version);
+            config.write_env_script().expect("Failed to write environment script");
+            print_success_message(language, &installed.version);
+        } else {
+            print_multiple_versions_installed_message(language, &installed_versions);
+        }
+    }
 }
 
-pub fn handle_default_command(language: &str, version: Option<&String>) {
-    if let Some(ver) = version {
-        run_default_with_version(language, ver);
-    } else {
-        run_default(language);
+fn print_success_message(language: &str, version: &str) {
+    println!();
+    print_box(&[("&aSuccess&r", BoxAlignment::Center)], &BoxOptions::default());
+    println!();
+    println!("{}", colorize(&format!("  &e{} {}&r is now the default version.", capitalize_first(language), version)));
+    println!();
+}
+
+fn print_not_installed_message(language: &str, version: &str) {
+    println!();
+    print_box(&[("&cError&r", BoxAlignment::Center)], &BoxOptions::default());
+    println!();
+    println!("{}", colorize(&format!("  &e{} version {}&r is not installed.", capitalize_first(language), version)));
+    println!();
+    let usage_line = format!(" &3pkit install {} {}&r  &8-&r  Install this version", language, version);
+    print_box(
+        &[(usage_line.as_str(), BoxAlignment::Left)],
+        &BoxOptions {
+            title: Some("Installation"),
+            ..Default::default()
+        },
+    );
+    println!();
+}
+
+fn print_no_versions_installed_message(language: &str) {
+    println!();
+    let title = format!("&eNo versions of {} are installed.&r", capitalize_first(language));
+    print_box(&[(title.as_str(), BoxAlignment::Center)], &BoxOptions::default());
+    println!();
+    let usage_line = format!(" &3pkit install {} <version>&r  &8-&r  Install a specific version", language);
+    print_box(
+        &[(usage_line.as_str(), BoxAlignment::Left)],
+        &BoxOptions {
+            title: Some("Installation"),
+            ..Default::default()
+        },
+    );
+    println!();
+}
+
+fn print_multiple_versions_installed_message(language: &str, installed_versions: &[crate::filesystem::config::Installed]) {
+    println!();
+    let title = format!("&eMultiple versions of {} are installed&r", capitalize_first(language));
+    print_box(&[(title.as_str(), BoxAlignment::Center)], &BoxOptions::default());
+    println!();
+
+    let columns = [("Version", 20), ("Status", 17)];
+    print_table_header(&columns);
+
+    for installed in installed_versions.iter() {
+        let version_str = format!("&e{}&r", installed.version);
+        let status_str = if installed.default { "&aDefault&r".to_string() } else { "&8Available&r".to_string() };
+        let values = [version_str.as_str(), status_str.as_str()];
+        print_table_row(&columns, &values);
     }
+    print_table_footer(&columns);
+    println!();
+    let usage_line = format!(" &3pkit default {} <version>&r  &8-&r  Set a specific version as default", language);
+    print_box(
+        &[(usage_line.as_str(), BoxAlignment::Left)],
+        &BoxOptions {
+            title: Some("Usage"),
+            ..Default::default()
+        },
+    );
+    println!();
 }
