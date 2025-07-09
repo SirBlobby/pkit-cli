@@ -17,10 +17,14 @@ pub fn handle_default_command(language: &str, version: Option<&String>, show: bo
     }
 
     if let Some(ver) = version {
-        if config.get(language, ver).is_some() {
-            config.set_default(language, ver);
-            config.write_env_script().expect("Failed to write environment script");
-            print_success_message(language, ver);
+        if let Some(installed) = config.get(language, ver) {
+            if installed.default {
+                print_already_default_message(language, ver);
+            } else {
+                config.set_default(language, ver);
+                config.write_env_script().expect("Failed to write environment script");
+                print_success_message(language, ver);
+            }
         } else {
             print_not_installed_message(language, ver);
             std::process::exit(1);
@@ -110,5 +114,13 @@ fn print_multiple_versions_installed_message(language: &str, installed_versions:
             ..Default::default()
         },
     );
+    println!();
+}
+
+fn print_already_default_message(language: &str, version: &str) {
+    println!();
+    print_box(&[("&eAlready Default&r", BoxAlignment::Center)], &BoxOptions::default());
+    println!();
+    println!("{}", colorize(&format!("  &e{} {}&r is already the default version.", capitalize_first(language), version)));
     println!();
 }
