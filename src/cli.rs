@@ -71,6 +71,16 @@ pub enum Commands {
         #[arg(long, help = colorize("&bUninstall all versions of the specified language&r"))]
         all: bool,
     },
+    /// Switch to a different language version for the current session
+    #[command(about = colorize("&aSwitch to a different language version for the current session&r"))]
+    Switch {
+        /// Language to switch to
+        #[arg(help = colorize("&eLanguage to switch to&r"))]
+        language: String,
+        /// Version to switch to
+        #[arg(help = colorize("&eVersion to switch to&r"))]
+        version: String,
+    },
 }
 
 impl Cli {

@@ -65,7 +65,13 @@ pub fn get_primary_shell_config_path() -> io::Result<PathBuf> {
 
 pub fn generate_env_setup_lines(pkit_home_str: &str) -> String {
     format!(
-        "\n\n# pkit-cli-env-start\nexport PKIT_HOME=\"{}\"\n[[ -s \"$PKIT_HOME/pkit_env.sh\" ]] && source \"$PKIT_HOME/pkit_env.sh\"\n# pkit-cli-env-end\n",
+        r#"
+
+# pkit-cli-env-start
+export PKIT_HOME="{}"
+[[ -s "$PKIT_HOME/pkit_env.sh" ]] && source "$PKIT_HOME/pkit_env.sh"
+# pkit-cli-env-end
+"#,
         pkit_home_str
     )
 }
@@ -105,7 +111,8 @@ fn clean_pkit_entries_from_file(config_path: &PathBuf) -> io::Result<()> {
         }
         
         if line.contains("export PKIT_HOME=") ||
-           line.contains("[[ -s \"$PKIT_HOME/pkit_env.sh\" ]] && source \"$PKIT_HOME/pkit_env.sh\"") {
+           line.contains("[[ -s \"$PKIT_HOME/pkit_env.sh\" ]] && source \"$PKIT_HOME/pkit_env.sh\"") ||
+           line.contains("[[ -s \"$PKIT_HOME/pkit_session_env.sh\" ]] && source \"$PKIT_HOME/pkit_session_env.sh\"") {
             continue;
         }
         
@@ -178,6 +185,29 @@ pub fn reload_environment() {
 
 pub fn generate_shell_function() -> String {
     format!(
-        "pkit() {{\n  command pkit \"$@\"\n\n  local env_file=\"${{PKIT_HOME:-$HOME/.pkit}}/pkit_env.sh\"\n\n  if [[ -f \"$env_file\" && -r \"$env_file\" ]]; then\n    case \"$1\" in\n      default|install|uninstall)\n        source \"$env_file\" && echo \"pkit environment reloaded.\"\n        ;;\n    esac\n  elif [[ \"$1\" == \"default\" || \"$1\" == \"install\" || \"$1\" == \"uninstall\" ]]; then\n    echo \"Warning: Environment file not found at $env_file\" >&2\n  fi\n}}\n"
+        r#"pkit() {{
+  command pkit "$@"
+
+  local env_file="${{PKIT_HOME:-$HOME/.pkit}}/pkit_env.sh"
+  local session_env_file="${{PKIT_HOME:-$HOME/.pkit}}/pkit_session_env.sh"
+
+  if [[ -f "$env_file" && -r "$env_file" ]]; then
+    case "$1" in
+      default|install|uninstall)
+        source "$env_file" && echo "pkit environment reloaded."
+        ;;
+      switch)
+        # Reload both main and session environments for switch command
+        source "$env_file"
+        if [[ -f "$session_env_file" && -r "$session_env_file" ]]; then
+          source "$session_env_file" && echo "pkit session environment loaded."
+        fi
+        ;;
+    esac
+  elif [[ "$1" == "default" || "$1" == "install" || "$1" == "uninstall" || "$1" == "switch" ]]; then
+    echo "Warning: Environment file not found at $env_file" >&2
+  fi
+}}
+"#
     )
 }
