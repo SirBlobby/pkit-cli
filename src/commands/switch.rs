@@ -5,7 +5,7 @@ use crate::formatter::{
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
-use crate::filesystem::{get_pkit_dir, generate_path_export, setup_shell_environment};
+use crate::filesystem::get_pkit_dir;
 
 pub fn handle_switch_command(language: &str, version: &str) {
     let config = Config::new();
@@ -16,16 +16,6 @@ pub fn handle_switch_command(language: &str, version: &str) {
         if let Err(e) = write_session_env_script(&config, language, &installed.path) {
             print_error_message(&format!("Failed to create session environment: {}", e));
             std::process::exit(1);
-        }
-        
-        // Setup shell environment to include session loading if not already present
-        if let Err(e) = setup_shell_environment() {
-            eprintln!("Warning: Failed to setup shell environment: {}", e);
-        }
-        
-        // Add session environment loading to shell configs
-        if let Err(e) = add_session_env_to_shell_configs() {
-            eprintln!("Warning: Failed to add session environment to shell configs: {}", e);
         }
         
         print_success_message(language, version);
@@ -60,13 +50,21 @@ fn write_session_env_script(config: &Config, session_language: &str, session_pat
 
     // Add the session-specific language first (highest priority)
     let session_bin_path = PathBuf::from(session_path).join("bin");
-    file.write_all(generate_path_export(&session_bin_path.display().to_string()).as_bytes())?;
+    if cfg!(windows) {
+        writeln!(file, "$env:PATH = \"{};$env:PATH\"", session_bin_path.display())?;
+    } else {
+        writeln!(file, "export PATH=\"{}:$PATH\"", session_bin_path.display())?;
+    }
     
     // Add other default languages (excluding the session language to avoid duplication)
     for install in &config.installed {
         if install.default && install.language != session_language {
             let bin_path = PathBuf::from(&install.path).join("bin");
-            file.write_all(generate_path_export(&bin_path.display().to_string()).as_bytes())?;
+            if cfg!(windows) {
+                writeln!(file, "$env:PATH = \"{};$env:PATH\"", bin_path.display())?;
+            } else {
+                writeln!(file, "export PATH=\"{}:$PATH\"", bin_path.display())?;
+            }
         }
     }
 
@@ -89,51 +87,6 @@ fn print_success_message(language: &str, version: &str) {
     ];
 
     print_box(&lines, &box_options);
-}
-
-fn add_session_env_to_shell_configs() -> std::io::Result<()> {
-    use crate::filesystem::path::unix::get_shell_config_files;
-    
-    let session_env_line = if cfg!(windows) {
-        "if (Test-Path $env:USERPROFILE\\.pkit\\pkit_session_env.ps1) { . $env:USERPROFILE\\.pkit\\pkit_session_env.ps1 }\n"
-    } else {
-        "[ -f \"${PKIT_HOME:-$HOME/.pkit}/pkit_session_env.sh\" ] && source \"${PKIT_HOME:-$HOME/.pkit}/pkit_session_env.sh\"\n"
-    };
-
-    for (_, config_path) in get_shell_config_files()? {
-        if config_path.exists() {
-            let content = fs::read_to_string(&config_path)?;
-            
-            // Check if session env loading is already present
-            if !content.contains("pkit_session_env") {
-                // Add session environment loading after the main pkit environment
-                let lines: Vec<&str> = content.lines().collect();
-                let mut new_lines = Vec::new();
-                let mut added_session_env = false;
-                
-                for line in lines {
-                    new_lines.push(line.to_string());
-                    
-                    // Add session env loading after the main pkit env line
-                    if !added_session_env && line.contains("source \"$PKIT_HOME/pkit_env.sh\"") {
-                        new_lines.push(session_env_line.trim().to_string());
-                        added_session_env = true;
-                    }
-                }
-                
-                // If we didn't find the main pkit env line, add session env at the end
-                if !added_session_env {
-                    new_lines.push("".to_string());
-                    new_lines.push("# pkit session environment".to_string());
-                    new_lines.push(session_env_line.trim().to_string());
-                }
-                
-                fs::write(&config_path, new_lines.join("\n"))?;
-            }
-        }
-    }
-    
-    Ok(())
 }
 
 fn print_not_installed_message(language: &str, version: &str) {

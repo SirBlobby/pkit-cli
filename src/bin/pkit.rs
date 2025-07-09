@@ -1,4 +1,4 @@
-use pkit::filesystem::{config::Config, setup_shell_environment};
+use pkit::filesystem::config::Config;
 use pkit::cli::{Cli, Commands};
 use pkit::commands::{list, install, default, uninstall, switch};
 
@@ -9,8 +9,6 @@ async fn main() {
     let cli = Cli::parse_args();
 
     let _ = Config::new();
-
-    setup_shell_environment().expect("Failed to setup shell environment");
 
     match &cli.command {
         Commands::List { language, installed } => {

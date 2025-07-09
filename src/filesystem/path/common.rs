@@ -80,12 +80,11 @@ pub fn get_pkit_dir_with_migration() -> io::Result<PathBuf> {
 pub fn get_pkit_directories_info() -> io::Result<String> {
     let old_pkit = get_home_dir()?.join(".pkit");
     let mut info = format!(
-        "Operating System: {:?}\nConfig Directory: {:?}\nData Directory: {:?}\nCache Directory: {:?}\nPrimary Shell Config: {:?}\n",
+        "Operating System: {:?}\nConfig Directory: {:?}\nData Directory: {:?}\nCache Directory: {:?}\n",
         detect_os(),
         super::get_pkit_dir()?,
         super::get_pkit_data_dir()?,
-        super::get_pkit_cache_dir()?,
-        super::get_primary_shell_config_path()?
+        super::get_pkit_cache_dir()?
     );
     
     if old_pkit.exists() {
