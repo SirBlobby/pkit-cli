@@ -2,7 +2,7 @@
 
 Cross-platform Programming Software Manager
 
-![Version](https://img.shields.io/badge/Version-0.0.1-blue)
+![Version](https://img.shields.io/badge/Version-0.0.2-blue)
 ![Issues](https://img.shields.io/github/issues/dead-projects-inc/pkit-cli)
 ![License](https://img.shields.io/github/license/dead-projects-inc/pkit-cli)
 
@@ -29,12 +29,12 @@ Cross-platform Programming Software Manager
 
 **Unix/Linux/macOS:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dead-projects-inc/pkit-cli/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dead-projects-inc/pkit-cli/refs/heads/master/scripts/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dead-projects-inc/pkit-cli/main/scripts/install.ps1" -OutFile "install.ps1"; .\install.ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dead-projects-inc/pkit-cli/refs/heads/master/scripts/install.ps1" -OutFile "install.ps1"; .\install.ps1
 ```
 
 ### Manual Installation
@@ -42,18 +42,6 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dead-projects-inc/pkit
 1. Download the appropriate binary from the [releases page](https://github.com/dead-projects-inc/pkit-cli/releases)
 2. Extract and place in your PATH
 3. Run the installation script for environment setup
-
-### Custom Installation
-
-You can customize the installation by setting environment variables:
-
-```bash
-# Install from a specific version
-PKIT_VERSION="v0.0.1" ./install.sh
-
-# Install from a custom repository
-PKIT_REPO="myuser/my-pkit-fork" ./install.sh
-```
 
 ## Usage
 
@@ -125,17 +113,7 @@ To remove pkit completely:
 
 1. Fork the repository
 3. Make your changes
-4. Add tests if applicable
 5. Submit a pull request
-
-## Roadmap
-
-- [x] Cross-platform CLI tool
-- [x] Automatic environment management
-- [x] Version switching and management
-- [x] Installation scripts for all platforms
-- [ ] Package database with popular languages/frameworks
-- [ ] Updating installed tools
 
 ## License
 

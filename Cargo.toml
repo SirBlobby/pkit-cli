@@ -1,6 +1,6 @@
 [package]
 name = "pkit"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Sir Blob <dev@sirblob.co>"]
 edition = "2024"
 
