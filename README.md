@@ -49,7 +49,7 @@ You can customize the installation by setting environment variables:
 
 ```bash
 # Install from a specific version
-PKIT_VERSION="v1.0.0" ./install.sh
+PKIT_VERSION="v0.0.1" ./install.sh
 
 # Install from a custom repository
 PKIT_REPO="myuser/my-pkit-fork" ./install.sh
@@ -65,9 +65,7 @@ pkit --help
 
 # List available packages
 pkit list
-
-# List installed packages
-pkit list --installed
+pkit list --installed # List installed packages
 
 # Install a package
 pkit install node 18.0.0
@@ -80,13 +78,18 @@ pkit switch node 16.0.0
 
 # Uninstall a package
 pkit uninstall node 18.0.0
+
+# Manage PATH entries
+pkit path add devnode "/usr/local/bin/node"
+pkit path remove devnode
+pkit path set devnode "/usr/local/bin/node"
+pkit path list
 ```
 
 ### Environment Management
-
 pkit automatically manages your shell environment:
 
-- **Persistent changes**: `install`, `default`, `uninstall` commands update your shell permanently
+- **Persistent changes**: `install`, `default`, `uninstall` `path` commands update your shell permanently
 - **Session changes**: `switch` command affects only the current session
 
 ## Supported Platforms

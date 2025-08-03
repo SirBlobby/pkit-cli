@@ -1,6 +1,6 @@
 use pkit::filesystem::config::Config;
 use pkit::cli::{Cli, Commands};
-use pkit::commands::{list, install, default, uninstall, switch};
+use pkit::commands::{list, install, default, uninstall, switch, path};
 
 // PATH="$(pwd):$PATH"
 
@@ -25,6 +25,9 @@ async fn main() {
         }
         Commands::Switch { language, version } => {
             switch::handle_switch_command(language, version);
+        }
+        Commands::Path { action, name, path } => {
+            path::handle_path_command(action, name.as_deref(), path.as_deref());
         }
     }
 }

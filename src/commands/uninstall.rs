@@ -21,7 +21,7 @@ fn uninstall_specific_version(language: &str, version: &str, config: &mut Config
         let was_default = installed.default;
         
         // Remove from config
-        config.remove(language, version);
+        config.remove_install(language, version);
         
         // Remove the actual installation directory
         let pkit_dir = get_pkit_dir().expect("Failed to get pkit directory");
@@ -74,7 +74,7 @@ fn uninstall_all_versions(language: &str, config: &mut Config) {
     
     // Remove all versions from config
     for installed in &installed_versions {
-        config.remove(language, &installed.version);
+        config.remove_install(language, &installed.version);
     }
     
     // Remove the entire language directory
