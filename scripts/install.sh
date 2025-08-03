@@ -161,7 +161,7 @@ pkit() {
 
   if [[ -f "$env_file" && -r "$env_file" ]]; then
     case "$1" in
-      default|install|uninstall)
+      default|install|uninstall|path)
         source "$env_file" && echo "pkit environment reloaded."
         ;;
       switch)

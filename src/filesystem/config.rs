@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use std::io::{self, Write};
 use crate::filesystem::{self, get_pkit_dir};
 use json;
+use crate::formatter::{capitalize_first, print_box, BoxAlignment, BoxOptions};
+
 
 #[derive(Clone)]
 pub struct Installed {
@@ -12,9 +14,15 @@ pub struct Installed {
     pub default: bool,
 }
 
+pub struct Source {
+    pub name: String,
+    pub path: String,
+}
+
 pub struct Config {
     pub path: PathBuf,
     pub installed: Vec<Installed>,
+    pub sources: Vec<Source>
 }
 
 impl Default for Config {
@@ -34,6 +42,7 @@ impl Config {
             let config = Config {
                 path: pkit_dir,
                 installed: Vec::new(),
+                sources: Vec::new(),
             };
             config.write().expect("Failed to write initial config");
             config
@@ -64,16 +73,26 @@ impl Config {
             });
         }
 
+        let mut sources = Vec::new();
+        for source in json_data["sources"].members() {
+            sources.push(Source {
+                name: source["name"].to_string(),
+                path: source["path"].to_string(),
+            });
+        }
+
         let pkit_dir = get_pkit_dir()?;
         Ok(Config {
             path: pkit_dir,
             installed,
+            sources
         })
     }
 
     pub fn write(&self) -> std::io::Result<()> {
         let mut json_data = json::JsonValue::new_object();
         let mut installed = json::JsonValue::new_array();
+        let mut sources_array = json::JsonValue::new_array();
 
         for install in &self.installed {
             let mut install_json = json::JsonValue::new_object();
@@ -84,6 +103,14 @@ impl Config {
             let _ = installed.push(install_json);
         }
 
+        for source in &self.sources {
+            let mut source_json = json::JsonValue::new_object();
+            source_json["name"] = source.name.clone().into();
+            source_json["path"] = source.path.clone().into();
+            let _ = sources_array.push(source_json);
+        }
+        
+        json_data["sources"] = sources_array;
         json_data["installed"] = installed;
         json_data["path"] = self.path.to_str().unwrap_or("").into();
 
@@ -91,9 +118,9 @@ impl Config {
         filesystem::write(&config_path, &json_data.pretty(2))
     }
 
-    pub fn add(&mut self, language: &str, version: &str, path: &str, default: bool) {
+    pub fn add_install(&mut self, language: &str, version: &str, path: &str, default: bool) {
         if self.get(language, version).is_some() {
-            self.update(language, version, path);
+            self.update_install(language, version, path);
             if default {
                 self.set_default(language, version);
                 return; // set_default already calls write()
@@ -118,7 +145,7 @@ impl Config {
         self.write().expect("Failed to save config after add");
     }
 
-    pub fn remove(&mut self, language: &str, version: &str) {
+    pub fn remove_install(&mut self, language: &str, version: &str) {
         self.installed.retain(|pkg| !(pkg.language == language && pkg.version == version));
         self.write().expect("Failed to save config after remove");
     }
@@ -140,13 +167,79 @@ impl Config {
         self.installed.iter().find(|&install| install.language == language && install.version == version)
     }
 
-    pub fn update(&mut self, language: &str, version: &str, path: &str) {
+    pub fn update_install(&mut self, language: &str, version: &str, path: &str) {
         for install in &mut self.installed {
             if install.language == language && install.version == version {
                 install.path = path.to_string();
             }
         }
         self.write().expect("Failed to save config after update");
+    }
+
+    pub fn add_path_source(&mut self, name: &str, path: &str) {
+        if self.sources.iter().any(|s| s.name == name) {
+            eprintln!("Source with name '{}' already exists.", name);
+            return;
+        }
+        self.sources.push(Source {
+            name: name.to_string(),
+            path: path.to_string(),
+        });
+
+        self.write().expect("Failed to save config after add_path_source");
+    }
+
+    pub fn remove_path_source(&mut self, name: &str) {
+        self.sources.retain(|source| source.name != name);
+        self.write().expect("Failed to save config after remove_path_source");
+    }
+
+    pub fn get_path_source(&self, name: &str) -> Option<&Source> {
+        self.sources.iter().find(|source| source.name == name)
+    }
+
+    pub fn get_path_source_mut(&mut self, name: &str) -> Option<&mut Source> {
+        self.sources.iter_mut().find(|source| source.name == name)
+    }
+
+    pub fn set_path_source(&mut self, name: &str, path: &str) {
+        if let Some(source) = self.get_path_source_mut(name) {
+            if !Path::new(path).exists() {
+                eprintln!("Path '{}' does not exist.", path);
+                return;
+            }
+            source.path = path.to_string();
+            self.write().expect("Failed to save config after set_path_source");
+        } else {
+            eprintln!("Source with name '{}' not found.", name);
+        }
+    }
+
+    pub fn print_installed(&self) {
+        if self.installed.is_empty() {
+            println!("No packages installed.");
+            return;
+        }
+
+        let mut lines: Vec<(&str, BoxAlignment)> = Vec::new();
+        for install in &self.installed {
+            let default_marker = if install.default { "*" } else { " " };
+            let line = format!(
+                "{} {} {} ({})",
+                default_marker,
+                capitalize_first(&install.language),
+                install.version,
+                install.path
+            );
+            lines.push((Box::leak(line.into_boxed_str()), BoxAlignment::Left));
+        }
+
+        print_box(
+            &lines,
+            &BoxOptions {
+                ..Default::default()
+            },
+        );
     }
 
     pub fn write_env_script(&self) -> io::Result<()> {
@@ -180,6 +273,15 @@ impl Config {
                 }
             }
         }
+
+        for source in &self.sources {
+            if cfg!(windows) {
+                writeln!(file, "$env:PATH = \"{};$env:PATH\"", source.path)?;
+            } else {
+                writeln!(file, "export PATH=\"{}:$PATH\"", source.path)?;
+            }
+        }
+
         Ok(())
     }
 }

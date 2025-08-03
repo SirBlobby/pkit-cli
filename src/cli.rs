@@ -81,6 +81,19 @@ pub enum Commands {
         #[arg(help = colorize("&eVersion to switch to&r"))]
         version: String,
     },
+    /// Manage path sources for custom installations
+    #[command(about = colorize("&aManage path sources for custom installations&r"))]
+    Path {
+        /// Action to perform (add, remove, list)
+        #[arg(help = colorize("&eAction to perform (add, remove, list)&r"))]
+        action: String,
+        /// Name of the path source
+        #[arg(help = colorize("&eName of the path source&r"))]
+        name: Option<String>,
+        /// Path to the source
+        #[arg(help = colorize("&ePath to the source&r"))]
+        path: Option<String>,
+    },
 }
 
 impl Cli {

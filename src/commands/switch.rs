@@ -68,6 +68,14 @@ fn write_session_env_script(config: &Config, session_language: &str, session_pat
         }
     }
 
+    for source in &config.sources {
+        if cfg!(windows) {
+            writeln!(file, "$env:{} = \"{};$env:{}\"", source.name, source.path, source.name)?;
+        } else {
+            writeln!(file, "export {}=\"{}:${}\"", source.name, source.path, source.name)?;
+        }
+    }
+
     Ok(())
 }
 

@@ -50,7 +50,7 @@ async fn install_software_with_data(software: api::Version) {
         .join(&software.version);
 
     if input.trim().eq_ignore_ascii_case("y") {
-        config.add(&software.language, &software.version, default_path.to_str().unwrap(), true);
+        config.add_install(&software.language, &software.version, default_path.to_str().unwrap(), true);
         config.write_env_script().expect("Failed to write environment script");
         
         println!();
@@ -60,7 +60,7 @@ async fn install_software_with_data(software: api::Version) {
         println!();
         
     } else {
-        config.add(&software.language, &software.version, default_path.to_str().unwrap(), false);
+        config.add_install(&software.language, &software.version, default_path.to_str().unwrap(), false);
         config.write_env_script().expect("Failed to write environment script");
         println!();
         let usage_line = format!(" &3pkit default {} {}&r  &8-&r  Set this version as default later", software.language, software.version);
