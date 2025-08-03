@@ -16,7 +16,7 @@ fn get_custom_styles() -> styling::Styles {
 #[derive(Parser)]
 #[command(name = "pkit")]
 #[command(about = colorize("&aA package manager for programming languages&r"))]
-#[command(version = "0.0.1")]
+#[command(version = "0.0.2")]
 #[command(styles = get_custom_styles())]
 pub struct Cli {
     #[command(subcommand)]
