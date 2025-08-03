@@ -149,7 +149,13 @@ fn print_box_line(content: &str, alignment: BoxAlignment, border_color: char) {
     let total_padding = BOX_WIDTH.saturating_sub(content_len);
     
     let (left_padding, right_padding) = match alignment {
-        BoxAlignment::Left => (1, total_padding - 1),
+        BoxAlignment::Left => {
+            if total_padding == 0 {
+                (0, 0)
+            } else {
+                (1, total_padding - 1)
+            }
+        },
         BoxAlignment::Center => (total_padding / 2, total_padding - (total_padding / 2)),
     };
 

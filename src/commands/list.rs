@@ -62,7 +62,7 @@ pub async fn print_available_language_versions(language: &str) {
 
     print_table_footer(&columns);
     println!();
-    let usage_line = format!(" &3pkit install {} <version>&r  &8-&r  Install a specific version                   ", language_data.name);
+    let usage_line = format!(" &3pkit install {} <version>&r  &8-&r  Install a specific version", language_data.name);
     print_box(
         &[(usage_line.as_str(), BoxAlignment::Left)],
         &BoxOptions {
